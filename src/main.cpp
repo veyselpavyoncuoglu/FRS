@@ -127,13 +127,13 @@ static std::wstring getSettingsPath() {
 	return dir + L"\\settings.ini";
 }
 
-static void saveSettings(const std::wstring& path,int flushSz,bool autoRefresh,int refreshSec,bool autoClean,int cleanThr,bool acFS,bool acEW,bool acPS,bool acFM,int maxLog) {
+static void saveSettings(const std::wstring& path,int flushSz,bool autoRefresh,float refreshSec,bool autoClean,int cleanThr,bool acFS,bool acEW,bool acPS,bool acFM,int maxLog) {
 	FILE* f = nullptr;
 	_wfopen_s(&f,path.c_str(),L"w");
 	if (!f) return;
 	fprintf(f,"flushSz=%d\n",flushSz);
 	fprintf(f,"autoRefresh=%d\n",(int)autoRefresh);
-	fprintf(f,"refreshSec=%d\n",refreshSec);
+	fprintf(f,"refreshSec=%.2f\n",refreshSec);
 	fprintf(f,"autoClean=%d\n",(int)autoClean);
 	fprintf(f,"cleanThr=%d\n",cleanThr);
 	fprintf(f,"acFS=%d\n",(int)acFS);
@@ -144,25 +144,25 @@ static void saveSettings(const std::wstring& path,int flushSz,bool autoRefresh,i
 	fclose(f);
 }
 
-static void loadSettings(const std::wstring& path,int& flushSz,bool& autoRefresh,int& refreshSec,bool& autoClean,int& cleanThr,bool& acFS,bool& acEW,bool& acPS,bool& acFM,int& maxLog) {
+static void loadSettings(const std::wstring& path,int& flushSz,bool& autoRefresh,float& refreshSec,bool& autoClean,int& cleanThr,bool& acFS,bool& acEW,bool& acPS,bool& acFM,int& maxLog) {
 	FILE* f = nullptr;
 	_wfopen_s(&f,path.c_str(),L"r");
 	if (!f) return;
 	char line[128];
 	while (fgets(line,sizeof(line),f)) {
-		char key[64];
-		int val;
-		if (sscanf_s(line,"%63[^=]=%d",key,(unsigned int)sizeof(key),&val) == 2) {
-			if (strcmp(key,"flushSz") == 0) flushSz = val;
-			else if (strcmp(key,"autoRefresh") == 0) autoRefresh = val != 0;
-			else if (strcmp(key,"refreshSec") == 0) refreshSec = val;
-			else if (strcmp(key,"autoClean") == 0) autoClean = val != 0;
-			else if (strcmp(key,"cleanThr") == 0) cleanThr = val;
-			else if (strcmp(key,"acFS") == 0) acFS = val != 0;
-			else if (strcmp(key,"acEW") == 0) acEW = val != 0;
-			else if (strcmp(key,"acPS") == 0) acPS = val != 0;
-			else if (strcmp(key,"acFM") == 0) acFM = val != 0;
-			else if (strcmp(key,"maxLog") == 0) maxLog = val;
+		char key[64]; int ival; float fval;
+		if (sscanf_s(line,"%63[^=]=%f",key,(unsigned int)sizeof(key),&fval) == 2) {
+			ival = (int)fval;
+			if (strcmp(key,"flushSz") == 0) flushSz = ival;
+			else if (strcmp(key,"autoRefresh") == 0) autoRefresh = ival != 0;
+			else if (strcmp(key,"refreshSec") == 0) refreshSec = fval;
+			else if (strcmp(key,"autoClean") == 0) autoClean = ival != 0;
+			else if (strcmp(key,"cleanThr") == 0) cleanThr = ival;
+			else if (strcmp(key,"acFS") == 0) acFS = ival != 0;
+			else if (strcmp(key,"acEW") == 0) acEW = ival != 0;
+			else if (strcmp(key,"acPS") == 0) acPS = ival != 0;
+			else if (strcmp(key,"acFM") == 0) acFM = ival != 0;
+			else if (strcmp(key,"maxLog") == 0) maxLog = ival;
 		}
 	}
 	fclose(f);
@@ -254,7 +254,7 @@ int WINAPI WinMain(HINSTANCE hi,HINSTANCE,LPSTR,int) {
 	bool scrollLog = false;
 
 	bool autoRefresh = true;
-	int refreshSec = 1;
+	float refreshSec = 1.0f;
 	bool autoClean = false;
 	int cleanThr = 20;
 	bool acFS = false,acEW = true,acPS = false,acFM = false;
@@ -314,7 +314,7 @@ int WINAPI WinMain(HINSTANCE hi,HINSTANCE,LPSTR,int) {
 	auto doFrame = [&]() {
 		flushPending();
 		ULONGLONG now = GetTickCount64();
-		if (autoRefresh && (now - lastRefresh) >= (ULONGLONG)refreshSec * 1000) {
+		if (autoRefresh && (now - lastRefresh) >= (ULONGLONG)(refreshSec * 1000.0f)) {
 			if (!cleaning.load()) {
 				stats = getRamStats();
 				lastRefresh = now;
@@ -492,9 +492,9 @@ int WINAPI WinMain(HINSTANCE hi,HINSTANCE,LPSTR,int) {
 				changed |= ImGui::Checkbox("Enabled##ar",&autoRefresh);
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(70.0f);
-				changed |= ImGui::InputInt("sec##ri",&refreshSec,1,5);
-				if (refreshSec < 1) refreshSec = 1;
-				if (refreshSec > 60) refreshSec = 60;
+				changed |= ImGui::InputFloat("sec##ri",&refreshSec,0.1f,1.0f,"%.1f");
+				if (refreshSec < 0.1f) refreshSec = 0.1f;
+				if (refreshSec > 60.0f) refreshSec = 60.0f;
 				ImGui::TextDisabled("  Polls RAM stats every N seconds.");
 
 				ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
