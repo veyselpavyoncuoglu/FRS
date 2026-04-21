@@ -86,4 +86,4 @@ FRS/
 
 ## License
 
-This project is provided as-is for educational and personal use.
+This project is licensed under the [MIT License](LICENSE).
