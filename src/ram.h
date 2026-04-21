@@ -7,7 +7,7 @@ struct RamStats {
 };
 
 RamStats getRamStats();
-std::string flushStandby(int szMB);
+std::string flushStandby(int sz);
 std::string emptyWorkSets();
 std::string purgeStandby();
 std::string flushModified();
