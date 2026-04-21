@@ -315,17 +315,13 @@ int WINAPI WinMain(HINSTANCE hi,HINSTANCE,LPSTR,int) {
 		flushPending();
 		ULONGLONG now = GetTickCount64();
 		if (autoRefresh && (now - lastRefresh) >= (ULONGLONG)(refreshSec * 1000.0f)) {
-			if (!cleaning.load()) {
-				stats = getRamStats();
-				lastRefresh = now;
-				if (autoClean) {
-					float pct = (stats.total > 0) ? (float)stats.used / (float)stats.total * 100.0f : 0.0f;
-					if (pct >= (float)cleanThr) {
-						runClean(acFS,acEW,acPS,acFM,"[auto] ");
-					}
+			lastRefresh = now;
+			stats = getRamStats();
+			if (autoClean && !cleaning.load()) {
+				float pct = (stats.total > 0) ? (float)stats.used / (float)stats.total * 100.0f : 0.0f;
+				if (pct >= (float)cleanThr) {
+					runClean(acFS,acEW,acPS,acFM,"[auto] ");
 				}
-			} else {
-				lastRefresh = now;
 			}
 		}
 
@@ -413,10 +409,10 @@ int WINAPI WinMain(HINSTANCE hi,HINSTANCE,LPSTR,int) {
 				ImGui::SameLine();
 				if (ImGui::Button("Max")) {
 					stats = getRamStats();
-					flushSz = (int)stats.free;
+					flushSz = (int)stats.total;
 				}
 				if (flushSz < 64) flushSz = 64;
-				if (flushSz > 65536) flushSz = 65536;
+				if (flushSz > (int)stats.total && stats.total > 0) flushSz = (int)stats.total;
 
 				ImGui::Spacing();
 
