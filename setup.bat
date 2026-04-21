@@ -23,23 +23,12 @@ echo [*] winget failed or g++ still not in PATH.
 echo [*] Downloading portable WinLibs MinGW-w64 from GitHub...
 if not exist tools mkdir tools
 
-:: Write a temp PS1 to avoid batch pipe-escaping issues
-(
-	echo $r = Invoke-RestMethod 'https://api.github.com/repos/brechtsanders/winlibs_mingw/releases/latest'
-	echo $a = $r.assets ^| Where-Object { $_.name -match 'x86_64.*posix.*seh.*ucrt.*\.zip' } ^| Select-Object -First 1
-	echo if (-not $a) { Write-Host '[!] No matching asset found'; exit 1 }
-	echo Write-Host ('[*] Downloading ' + $a.name)
-	echo Invoke-WebRequest $a.browser_download_url -OutFile 'tools\mingw64.zip'
-) > tools\_dl.ps1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\_dl.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\download_mingw.ps1"
 if errorlevel 1 (
-	del tools\_dl.ps1 2>nul
 	echo [!] Download failed. Install g++ manually and rerun setup.bat.
 	pause
 	exit /b 1
 )
-del tools\_dl.ps1
 
 echo [*] Extracting MinGW-w64...
 powershell -NoProfile -Command "Expand-Archive -Force 'tools\mingw64.zip' 'tools\'"

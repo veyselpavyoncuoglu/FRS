@@ -29,7 +29,7 @@ g++ -O2 -std=c++17 -DUNICODE -D_UNICODE -mwindows ^
 	imgui\imgui.cpp imgui\imgui_draw.cpp imgui\imgui_tables.cpp imgui\imgui_widgets.cpp ^
 	imgui\imgui_impl_win32.cpp imgui\imgui_impl_dx11.cpp ^
 	res\app.res ^
-	-ld3d11 -ldxgi -lpsapi -luser32 -lgdi32 -lshell32 -ldwmapi -lkernel32 ^
+	-ld3d11 -ldxgi -ld3dcompiler -lpsapi -luser32 -lgdi32 -lshell32 -ldwmapi -lkernel32 ^
 	-o RAMCleaner.exe
 
 if errorlevel 1 ( echo [!] Build failed & pause & exit /b 1 )
