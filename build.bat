@@ -23,7 +23,7 @@ popd
 if not exist build mkdir build
 
 echo [*] Building RAMCleaner...
-g++ -O2 -std=c++17 -DUNICODE -D_UNICODE -mwindows ^
+g++ -O2 -std=c++17 -DUNICODE -D_UNICODE -mwindows -static-libgcc -static-libstdc++ -static ^
 	-I imgui -I src ^
 	src\main.cpp src\ram.cpp ^
 	imgui\imgui.cpp imgui\imgui_draw.cpp imgui\imgui_tables.cpp imgui\imgui_widgets.cpp ^
