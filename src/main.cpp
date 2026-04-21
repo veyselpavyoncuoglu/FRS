@@ -355,18 +355,36 @@ int WINAPI WinMain(HINSTANCE hi,HINSTANCE,LPSTR,int) {
 		float used = (float)stats.used;
 		float total = (float)stats.total;
 		float frac = (total > 0.0f) ? used / total : 0.0f;
+		auto lerp4 = [](ImVec4 a,ImVec4 b,float t) {
+			return ImVec4(a.x+(b.x-a.x)*t, a.y+(b.y-a.y)*t, a.z+(b.z-a.z)*t, 1.0f);
+		};
+		ImVec4 colGreen = ImVec4(0.2f,0.78f,0.3f,1.0f);
+		ImVec4 colYellow = ImVec4(1.0f,0.7f,0.1f,1.0f);
+		ImVec4 colRed = ImVec4(1.0f,0.25f,0.25f,1.0f);
 		ImVec4 barCol;
-		if (frac < 0.6f) barCol = ImVec4(0.2f,0.78f,0.3f,1.0f);
-		else if (frac < 0.8f) barCol = ImVec4(1.0f,0.7f,0.1f,1.0f);
-		else barCol = ImVec4(1.0f,0.25f,0.25f,1.0f);
+		if (frac < 0.6f) barCol = lerp4(colGreen,colYellow,frac / 0.6f);
+		else barCol = lerp4(colYellow,colRed,(frac - 0.6f) / 0.4f);
 
 		ImGui::Text("RAM :");
 		ImGui::SameLine();
-		ImGui::PushStyleColor(ImGuiCol_PlotHistogram,barCol);
 		char ovl[80];
 		snprintf(ovl,sizeof(ovl),"%.0f / %.0f MB   (%.0f MB free | %.1f%%)",used,total,(float)stats.free,frac * 100.0f);
-		ImGui::ProgressBar(frac,ImVec2(-1.0f,20.0f),ovl);
+		ImGui::PushStyleColor(ImGuiCol_PlotHistogram,barCol);
+		ImGui::ProgressBar(frac,ImVec2(-1.0f,20.0f),"");
 		ImGui::PopStyleColor();
+		{
+			ImVec2 rmin = ImGui::GetItemRectMin();
+			ImVec2 rmax = ImGui::GetItemRectMax();
+			ImDrawList* dl = ImGui::GetWindowDrawList();
+			ImVec2 tsz = ImGui::CalcTextSize(ovl);
+			ImVec2 tp = ImVec2(rmin.x + (rmax.x - rmin.x - tsz.x) * 0.5f, rmin.y + (rmax.y - rmin.y - tsz.y) * 0.5f);
+			ImU32 sh = IM_COL32(0,0,0,210);
+			dl->AddText(ImVec2(tp.x+1,tp.y+1),sh,ovl);
+			dl->AddText(ImVec2(tp.x-1,tp.y+1),sh,ovl);
+			dl->AddText(ImVec2(tp.x+1,tp.y-1),sh,ovl);
+			dl->AddText(ImVec2(tp.x-1,tp.y-1),sh,ovl);
+			dl->AddText(tp,IM_COL32(255,255,255,255),ovl);
+		}
 
 		if (ImGui::Button("Refresh")) {
 			stats = getRamStats();
@@ -433,7 +451,9 @@ int WINAPI WinMain(HINSTANCE hi,HINSTANCE,LPSTR,int) {
 					ImGui::ProgressBar(p,ImVec2(-1.0f,18.0f),pl);
 					ImGui::PopStyleColor();
 				} else {
-					ImGui::ProgressBar(1.0f,ImVec2(-1.0f,18.0f),"Idle");
+					ImGui::PushStyleColor(ImGuiCol_PlotHistogram,ImVec4(0,0,0,0));
+					ImGui::ProgressBar(0.0f,ImVec2(-1.0f,18.0f),"Idle");
+					ImGui::PopStyleColor();
 				}
 
 				ImGui::Separator();
