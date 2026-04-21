@@ -22,7 +22,7 @@ popd
 
 if not exist build mkdir build
 
-echo [*] Building RAMCleaner...
+echo [*] Building FRS...
 g++ -O2 -std=c++17 -DUNICODE -D_UNICODE -mwindows -static-libgcc -static-libstdc++ -static ^
 	-I imgui -I src ^
 	src\main.cpp src\ram.cpp ^
@@ -30,8 +30,8 @@ g++ -O2 -std=c++17 -DUNICODE -D_UNICODE -mwindows -static-libgcc -static-libstdc
 	imgui\imgui_impl_win32.cpp imgui\imgui_impl_dx11.cpp ^
 	res\app.res ^
 	-ld3d11 -ldxgi -ld3dcompiler -lpsapi -luser32 -lgdi32 -lshell32 -ldwmapi -lkernel32 ^
-	-o RAMCleaner.exe
+	-o FRS.exe
 
 if errorlevel 1 ( echo [!] Build failed & pause & exit /b 1 )
-echo [*] Build succeeded: RAMCleaner.exe
+echo [*] Build succeeded: FRS.exe
 pause

@@ -47,6 +47,34 @@ std::string emptyWorkSets() {
 	return ss.str();
 }
 
+std::string purgeStandby() {
+	typedef LONG(WINAPI* NtSI_t)(UINT,PVOID,ULONG);
+	auto fn = (NtSI_t)GetProcAddress(GetModuleHandleW(L"ntdll.dll"),"NtSetSystemInformation");
+	if (!fn) return "PurgeStandby : ntdll lookup failed";
+	UINT cmd = 4; // MemoryPurgeStandbyList
+	LONG r = fn(80,&cmd,sizeof(cmd));
+	if (r != 0) {
+		std::ostringstream ss;
+		ss << "PurgeStandby : NTSTATUS 0x" << std::hex << (unsigned)r;
+		return ss.str();
+	}
+	return "PurgeStandby : OK";
+}
+
+std::string flushModified() {
+	typedef LONG(WINAPI* NtSI_t)(UINT,PVOID,ULONG);
+	auto fn = (NtSI_t)GetProcAddress(GetModuleHandleW(L"ntdll.dll"),"NtSetSystemInformation");
+	if (!fn) return "FlushModified : ntdll lookup failed";
+	UINT cmd = 3; // MemoryFlushModifiedList
+	LONG r = fn(80,&cmd,sizeof(cmd));
+	if (r != 0) {
+		std::ostringstream ss;
+		ss << "FlushModified : NTSTATUS 0x" << std::hex << (unsigned)r;
+		return ss.str();
+	}
+	return "FlushModified : OK";
+}
+
 bool isElevated() {
 	BOOL elev = FALSE;
 	HANDLE tok;
