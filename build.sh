@@ -13,6 +13,13 @@ if [ ! -f imgui/imgui_impl_glfw.cpp ]; then
 	exit 1
 fi
 
+# Detect stale imgui.h (WIP pre-release missing DrawCallback_* in ImGuiPlatformIO).
+if ! grep -q 'DrawCallback_ResetRenderState' imgui/imgui.h 2>/dev/null; then
+	echo "[!] imgui.h is outdated and incompatible with the downloaded backends."
+	echo "    Run ./setup.sh to refresh all imgui files to v1.92.8."
+	exit 1
+fi
+
 # Detect GLFW via pkg-config (most reliable) or by header file location.
 glfw_find_header() {
 	for p in /usr/include/GLFW/glfw3.h /usr/local/include/GLFW/glfw3.h; do

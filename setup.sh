@@ -53,10 +53,10 @@ fi
 # ----------------------------------------------------------------------------
 # Step 2 : clone ImGui and copy the files we need (core + GLFW/OpenGL3 backends)
 # ----------------------------------------------------------------------------
-echo "[*] Cloning ImGui (shallow)..."
+echo "[*] Cloning ImGui v1.92.8 (shallow)..."
 mkdir -p imgui
 rm -rf _imgui_tmp
-git clone --depth=1 https://github.com/ocornut/imgui.git _imgui_tmp
+git clone --depth=1 --branch v1.92.8 https://github.com/ocornut/imgui.git _imgui_tmp
 
 echo "[*] Copying required files..."
 for f in imgui.h imgui.cpp imgui_draw.cpp imgui_tables.cpp imgui_widgets.cpp \
