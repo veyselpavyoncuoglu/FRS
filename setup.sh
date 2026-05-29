@@ -43,6 +43,13 @@ if ! need g++; then
 	exit 1
 fi
 
+# Warn loudly if GLFW dev headers still aren't present after the install attempt.
+if [ ! -f /usr/include/GLFW/glfw3.h ] && [ ! -f /usr/local/include/GLFW/glfw3.h ]; then
+	echo "[!] GLFW development headers not found after install attempt."
+	echo "    Try manually: sudo apt-get install libglfw3-dev"
+	exit 1
+fi
+
 # ----------------------------------------------------------------------------
 # Step 2 : clone ImGui and copy the files we need (core + GLFW/OpenGL3 backends)
 # ----------------------------------------------------------------------------
