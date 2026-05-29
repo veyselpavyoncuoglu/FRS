@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Shell scripts must always use LF so they run on Linux even if checked out on Windows
+*.sh text eol=lf
+
+# Windows batch files should keep CRLF
+*.bat text eol=crlf

@@ -1,12 +1,12 @@
 # FRS — Free RAM System
 
-A lightweight Windows RAM cleaner with a native ImGui + DirectX 11 UI.  
+A lightweight cross-platform RAM cleaner with a native ImGui UI.  
 Runs multiple cleaning methods in the background with real-time progress feedback.
 
 > Because Microslop is too busy shipping another AI powered slop to bother freeing the 4 GB of RAM that Copilot, Teams, and Windows Search quietly ate while you weren't looking.
 
 ![License](https://img.shields.io/badge/License-MIT-gold.svg)
-![Platform](https://img.shields.io/badge/Platform-Windows-blue.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue.svg)
 
 ## Features
 
@@ -17,23 +17,46 @@ Runs multiple cleaning methods in the background with real-time progress feedbac
 - **Full Clean** — runs all four methods in sequence
 - **Auto-Refresh** — refreshes RAM stats automatically at a configurable interval
 - **Auto-Clean** — triggers a clean automatically when RAM usage exceeds a configurable threshold; with a low threshold and only "Empty Working Sets" ticked it makes a great passive background cleaner that stays out of the way until memory pressure actually builds up
-- **Persistent settings** — all settings are saved to `%APPDATA%\FRS\settings.ini` immediately on change and restored on next launch
-- **Run at startup** — optional Task Scheduler task that launches FRS elevated at logon with no UAC prompt; toggled from the Settings tab (default off)
+- **Persistent settings** — all settings are saved on change and restored on next launch (`%APPDATA%\FRS\settings.ini` on Windows, `$XDG_CONFIG_HOME/FRS/settings.ini` — usually `~/.config/FRS/settings.ini` — on Linux)
+- **Run at startup** — optional auto-start at login, toggled from the Settings tab (default off). Windows uses a Task Scheduler task that launches FRS elevated with no UAC prompt; Linux drops a `.desktop` entry in `~/.config/autostart/`
 - Threaded cleaning — UI stays responsive during long operations
 - Real-time progress bar and timestamped log with color-coded entries (green = success, red = error, yellow = auto-clean, gray = neutral)
-- No freeze during window drag — render loop keeps running via a Win32 timer while the title bar is held
-- UAC elevation prompt on launch (required for full effectiveness)
-- No installer, no runtime DLLs — single portable `.exe`
+- No freeze during window drag — the render loop keeps running while the window is resized/moved
+- Elevation indicator — shows `[ADMIN]` when running with the privileges needed for full effectiveness
+- No installer — single portable executable (statically linked on Windows)
+
+## Platform support
+
+FRS runs on **Windows** (Win32 + DirectX 11 backend) and **Linux** (GLFW + OpenGL 3 backend). The UI, settings, logging and threaded cleaning are shared, identical code; only the windowing backend and the RAM primitives differ per OS.
+
+### How the four methods map on Linux
+
+| Method | Windows | Linux |
+| --- | --- | --- |
+| Flush Standby | parallel allocate → touch → free (forces standby-list flush) | identical: parallel `mmap` → touch → `munmap` to create reclaim pressure |
+| Empty Working Sets | `EmptyWorkingSet` on every process | `process_madvise(MADV_PAGEOUT)` over each process's `/proc/<pid>/maps` regions (kernel ≥ 5.10) |
+| Purge Standby | `NtSetSystemInformation` cmd 4 | `sync` + drop clean page cache via `/proc/sys/vm/drop_caches` (needs root) |
+| Flush Modified | `NtSetSystemInformation` cmd 3 | `sync()` — flush modified/dirty pages to disk |
+
+RAM stats come from `GlobalMemoryStatusEx` on Windows and `/proc/meminfo` (`MemAvailable`) on Linux. Methods that need root degrade gracefully and report the reason in the log instead of crashing.
 
 ## Requirements
 
+**Windows**
 - Windows 10 / 11 (64-bit)
 - Administrator privileges (UAC prompt shown on launch)
 - Internet connection for first-time setup (to download MinGW if needed)
 
+**Linux**
+- A C++17 compiler (g++/clang), GLFW3 dev headers, OpenGL
+- Run as root (`sudo`) for the cache-dropping methods to take effect
+- Internet connection for first-time setup (to clone ImGui)
+
 ## Building
 
-### 1. Setup (first time only)
+### Windows
+
+#### 1. Setup (first time only)
 
 Run `setup.bat`. It will:
 
@@ -46,7 +69,7 @@ Run `setup.bat`. It will:
 setup.bat
 ```
 
-### 2. Build
+#### 2. Build
 
 ```
 build.bat
@@ -54,35 +77,59 @@ build.bat
 
 Produces `FRS.exe` in the project root. No additional DLLs needed — the runtime is statically linked.
 
+### Linux
+
+#### 1. Setup (first time only)
+
+```
+./setup.sh
+```
+
+Installs the build toolchain and GLFW dev headers via your distro's package manager (apt/dnf/pacman/zypper), then clones ImGui and copies the core files plus the GLFW/OpenGL3 backends into `imgui/`.
+
+#### 2. Build
+
+```
+./build.sh
+```
+
+Produces `./FRS` in the project root. Run it with `sudo ./FRS` so the standby/cache methods can take effect.
+
 ## Project Structure
 
 ```
 FRS/
 ├── src/
-│   ├── main.cpp          # Win32 window, DirectX 11, ImGui render loop, full UI
-│   ├── ram.h             # RamStats struct + function declarations
-│   └── ram.cpp           # RAM cleaning implementations
-├── imgui/                # ImGui source (populated by setup.bat)
+│   ├── app.h / app.cpp        # Shared platform-agnostic core: UI, settings, logging, threaded cleaning
+│   ├── platform.h             # Thin OS-abstraction interface (settings I/O, startup, privileges)
+│   ├── platform_win.cpp       # Windows platform impl (AppData path, schtasks startup, SE_DEBUG)
+│   ├── platform_linux.cpp     # Linux platform impl (XDG config path, autostart .desktop)
+│   ├── ram.h                  # RamStats struct + cleaning function declarations (platform-neutral)
+│   ├── ram.cpp                # Windows RAM cleaning implementations
+│   ├── ram_linux.cpp          # Linux RAM cleaning implementations
+│   ├── main.cpp               # Windows backend: Win32 window + DirectX 11 render loop
+│   └── main_linux.cpp         # Linux backend: GLFW window + OpenGL 3 render loop
+├── imgui/                     # ImGui source + backends (populated by setup.bat / setup.sh)
 ├── res/
-│   ├── app.manifest      # UAC elevation manifest
-│   └── app.rc            # Resource script embedding the manifest
+│   ├── app.manifest           # UAC elevation manifest (Windows)
+│   └── app.rc                 # Resource script embedding the manifest
 ├── tools/
-│   └── download_mingw.ps1  # PowerShell script to download WinLibs MinGW
-├── build.bat             # Compile script
-└── setup.bat             # Dependency installer
+│   └── download_mingw.ps1     # PowerShell script to download WinLibs MinGW (Windows)
+├── build.bat / setup.bat      # Windows compile + dependency scripts
+└── build.sh  / setup.sh       # Linux compile + dependency scripts
 ```
 
 ## Technical Notes
 
-- **Compiler**: g++ (MinGW-w64), C++17, `-O2 -mwindows -static-libgcc -static-libstdc++ -static`
-- **UI**: [Dear ImGui](https://github.com/ocornut/imgui) with Win32 + DirectX 11 backend
+- **Compiler**: g++ — Windows: MinGW-w64, C++17, `-O2 -mwindows -static-libgcc -static-libstdc++ -static`; Linux: C++17, `-O2`, linked against GLFW + OpenGL
+- **UI**: [Dear ImGui](https://github.com/ocornut/imgui) — Win32 + DirectX 11 backend on Windows, GLFW + OpenGL 3 backend on Linux. The same `App` core drives both, so the UI is byte-for-byte identical across platforms.
 - **Threading**: `std::thread` + `std::atomic` + `std::mutex` for thread-safe log updates and parallel RAM operations
-- **Parallelism**: `flushStandby` and `emptyWorkSets` split work across `std::thread::hardware_concurrency()` threads
-- **Settings**: plain `key=value` INI written to `%APPDATA%\FRS\settings.ini`; directory is created automatically on first launch
+- **Parallelism**: `flushStandby` and `emptyWorkSets` split work across `std::thread::hardware_concurrency()` threads on both platforms
+- **Settings**: plain `key=value` INI; directory created automatically on first save (`%APPDATA%\FRS` / `~/.config/FRS`)
 - **Log colors**: green for successful operations, red for errors/NTSTATUS codes, yellow/orange for auto-clean triggers, gray for neutral entries
 - **Default Auto-Clean config**: threshold 20%, Empty Working Sets only — ready to enable as a passive background cleaner out of the box
-- **Startup**: Task Scheduler task created via `schtasks /create /rl highest /sc onlogon`; no UAC prompt on subsequent boots since the task already holds the elevation grant
-- **Privileges**: `SE_DEBUG_NAME` privilege enabled at startup for `EmptyWorkingSet` access to system processes
+- **Startup**: Windows uses a Task Scheduler task via `schtasks /create /rl highest /sc onlogon` (no UAC prompt on subsequent boots); Linux uses an XDG autostart `.desktop` file
+- **Privileges**: Windows enables `SE_DEBUG_NAME` at startup for `EmptyWorkingSet` access to system processes; Linux checks `geteuid() == 0`
 
 ## License
 

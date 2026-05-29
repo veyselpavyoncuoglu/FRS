@@ -1,9 +1,9 @@
 #pragma once
-#include <windows.h>
+#include <cstdint>
 #include <string>
 
 struct RamStats {
-	DWORDLONG total,used,free; // MB
+	uint64_t total,used,free; // MB
 };
 
 RamStats getRamStats();

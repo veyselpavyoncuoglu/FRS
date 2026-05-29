@@ -25,7 +25,7 @@ if not exist build mkdir build
 echo [*] Building FRS...
 g++ -O2 -std=c++17 -DUNICODE -D_UNICODE -mwindows -static-libgcc -static-libstdc++ -static ^
 	-I imgui -I src ^
-	src\main.cpp src\ram.cpp ^
+	src\main.cpp src\app.cpp src\ram.cpp src\platform_win.cpp ^
 	imgui\imgui.cpp imgui\imgui_draw.cpp imgui\imgui_tables.cpp imgui\imgui_widgets.cpp ^
 	imgui\imgui_impl_win32.cpp imgui\imgui_impl_dx11.cpp ^
 	res\app.res ^

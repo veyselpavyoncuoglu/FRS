@@ -1,4 +1,7 @@
 #include "ram.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <psapi.h>
 #include <tlhelp32.h>
 #include <sstream>
@@ -114,3 +117,4 @@ bool isElevated() {
 	}
 	return elev != FALSE;
 }
+#endif // _WIN32
