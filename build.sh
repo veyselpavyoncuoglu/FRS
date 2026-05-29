@@ -13,6 +13,29 @@ if [ ! -f imgui/imgui_impl_glfw.cpp ]; then
 	exit 1
 fi
 
+# Ensure the GLFW development headers are present; install them if not.
+GLFW_HEADER=""
+for p in /usr/include/GLFW/glfw3.h /usr/local/include/GLFW/glfw3.h; do
+	[ -f "$p" ] && GLFW_HEADER="$p" && break
+done
+
+if [ -z "$GLFW_HEADER" ]; then
+	echo "[*] GLFW headers not found — attempting to install libglfw3-dev..."
+	if command -v apt-get >/dev/null 2>&1; then
+		sudo apt-get install -y libglfw3-dev libgl1-mesa-dev
+	elif command -v dnf >/dev/null 2>&1; then
+		sudo dnf install -y glfw-devel mesa-libGL-devel
+	elif command -v pacman >/dev/null 2>&1; then
+		sudo pacman -S --noconfirm glfw mesa
+	elif command -v zypper >/dev/null 2>&1; then
+		sudo zypper install -y glfw-devel Mesa-libGL-devel
+	else
+		echo "[!] No supported package manager found."
+		echo "    Install GLFW3 dev headers manually (e.g. libglfw3-dev)."
+		exit 1
+	fi
+fi
+
 # GLFW/GL link flags via pkg-config when available, else sane defaults.
 if pkg-config --exists glfw3 2>/dev/null; then
 	GLFW_FLAGS="$(pkg-config --cflags --libs glfw3)"
