@@ -28,7 +28,7 @@ glfw_detected() {
 if ! glfw_detected; then
 	echo "[*] GLFW headers not found — installing..."
 	if command -v apt-get >/dev/null 2>&1; then
-		sudo apt-get update -qq
+		sudo apt-get update -qq --ignore-missing || true
 		sudo apt-get install -y libglfw3-dev libgl1-mesa-dev
 	elif command -v dnf >/dev/null 2>&1; then
 		sudo dnf install -y glfw-devel mesa-libGL-devel
