@@ -15,8 +15,8 @@ fi
 
 # Detect stale imgui.h (WIP pre-release missing DrawCallback_* as struct members in ImGuiPlatformIO).
 # The WIP version has #define ImDrawCallback_ResetRenderState (a macro), not a struct member.
-# The final v1.92.8 release has: ImDrawCallback DrawCallback_ResetRenderState;
-if ! grep -q 'ImDrawCallback DrawCallback_ResetRenderState' imgui/imgui.h 2>/dev/null; then
+# The final v1.92.8 release has: ImDrawCallback  DrawCallback_ResetRenderState;
+if ! grep -q 'DrawCallback_ResetRenderState;' imgui/imgui.h 2>/dev/null; then
 	echo "[!] imgui.h is outdated and incompatible with the downloaded backends."
 	echo "    Run ./setup.sh to refresh all imgui files to v1.92.8."
 	exit 1
