@@ -13,15 +13,22 @@ if [ ! -f imgui/imgui_impl_glfw.cpp ]; then
 	exit 1
 fi
 
-# Ensure the GLFW development headers are present; install them if not.
-GLFW_HEADER=""
-for p in /usr/include/GLFW/glfw3.h /usr/local/include/GLFW/glfw3.h; do
-	[ -f "$p" ] && GLFW_HEADER="$p" && break
-done
+# Detect GLFW via pkg-config (most reliable) or by header file location.
+glfw_find_header() {
+	for p in /usr/include/GLFW/glfw3.h /usr/local/include/GLFW/glfw3.h; do
+		[ -f "$p" ] && echo "$p" && return 0
+	done
+	return 1
+}
 
-if [ -z "$GLFW_HEADER" ]; then
-	echo "[*] GLFW headers not found — attempting to install libglfw3-dev..."
+glfw_detected() {
+	pkg-config --exists glfw3 2>/dev/null || glfw_find_header >/dev/null 2>&1
+}
+
+if ! glfw_detected; then
+	echo "[*] GLFW headers not found — installing..."
 	if command -v apt-get >/dev/null 2>&1; then
+		sudo apt-get update -qq
 		sudo apt-get install -y libglfw3-dev libgl1-mesa-dev
 	elif command -v dnf >/dev/null 2>&1; then
 		sudo dnf install -y glfw-devel mesa-libGL-devel
@@ -34,18 +41,26 @@ if [ -z "$GLFW_HEADER" ]; then
 		echo "    Install GLFW3 dev headers manually (e.g. libglfw3-dev)."
 		exit 1
 	fi
+	if ! glfw_detected; then
+		echo "[!] GLFW headers still not found after install. Aborting."
+		exit 1
+	fi
 fi
 
-# GLFW/GL link flags via pkg-config when available, else sane defaults.
+# Build compile/link flags.  pkg-config gives the canonical -I and -l flags;
+# fall back to deriving the include root from the header path directly.
 if pkg-config --exists glfw3 2>/dev/null; then
-	GLFW_FLAGS="$(pkg-config --cflags --libs glfw3)"
+	GLFW_CFLAGS="$(pkg-config --cflags glfw3)"
+	GLFW_FLAGS="$(pkg-config --libs glfw3)"
 else
+	GLFW_HDR="$(glfw_find_header)"
+	GLFW_CFLAGS="-I$(dirname "$(dirname "$GLFW_HDR")")"
 	GLFW_FLAGS="-lglfw"
 fi
 
 echo "[*] Building FRS..."
 g++ -O2 -std=c++17 \
-	-I imgui -I src \
+	-I imgui -I src $GLFW_CFLAGS \
 	src/main_linux.cpp src/app.cpp src/ram_linux.cpp src/platform_linux.cpp \
 	imgui/imgui.cpp imgui/imgui_draw.cpp imgui/imgui_tables.cpp imgui/imgui_widgets.cpp \
 	imgui/imgui_impl_glfw.cpp imgui/imgui_impl_opengl3.cpp \
