@@ -25,11 +25,11 @@ if not exist build mkdir build
 echo [*] Building FRS...
 g++ -O2 -std=c++17 -DUNICODE -D_UNICODE -mwindows -static-libgcc -static-libstdc++ -static ^
 	-I imgui -I src ^
-	src\main.cpp src\app.cpp src\ram.cpp src\platform_win.cpp ^
+	src\main.cpp src\app.cpp src\ram.cpp src\platform_win.cpp src\privacy.cpp src\privacy_win.cpp ^
 	imgui\imgui.cpp imgui\imgui_draw.cpp imgui\imgui_tables.cpp imgui\imgui_widgets.cpp ^
 	imgui\imgui_impl_win32.cpp imgui\imgui_impl_dx11.cpp ^
 	res\app.res ^
-	-ld3d11 -ldxgi -ld3dcompiler -lpsapi -luser32 -lgdi32 -lshell32 -ldwmapi -lkernel32 ^
+	-ld3d11 -ldxgi -ld3dcompiler -lpsapi -luser32 -lgdi32 -lshell32 -ldwmapi -ladvapi32 -lkernel32 ^
 	-o FRS.exe
 
 if errorlevel 1 ( echo [!] Build failed & pause & exit /b 1 )

@@ -1,6 +1,7 @@
 #include "app.h"
 #include "ram.h"
 #include "platform.h"
+#include "privacy.h"
 #include "imgui.h"
 #include <cstdio>
 #include <cstring>
@@ -391,6 +392,62 @@ void App::drawUI() {
 				}
 				ImGui::TextDisabled("  Launches FRS automatically when you log in.");
 			}
+
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Privacy")) {
+			privacy::drawTab();
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Credits")) {
+			ImGui::Spacing();
+
+			// ── FRS ──────────────────────────────────────────────────────────
+			ImGui::TextColored(ImVec4(0.35f,0.85f,1.0f,1.0f),"FRS | Free RAM System");
+			ImGui::TextDisabled("  A lightweight cross-platform RAM cleaner with a native ImGui UI.");
+			ImGui::TextDisabled("  Windows (Win32 + DirectX 11) and Linux (GLFW + OpenGL 3).");
+			ImGui::Spacing();
+
+			ImGui::TextColored(ImVec4(0.35f,0.85f,1.0f,1.0f),"Author");
+			ImGui::Spacing();
+			ImGui::TextColored(ImVec4(1.0f,0.85f,0.3f,1.0f),"Nems1337");
+			ImGui::TextDisabled("  Original author and developer of FRS.");
+			ImGui::Spacing();
+
+			// ── Third-party libraries ────────────────────────────────────────
+			ImGui::Separator();
+			ImGui::Spacing();
+			ImGui::TextColored(ImVec4(0.35f,0.85f,1.0f,1.0f),"Third-Party Libraries");
+			ImGui::Spacing();
+
+			ImGui::TextColored(ImVec4(1.0f,0.85f,0.3f,1.0f),"Dear ImGui");
+			ImGui::SameLine();
+			ImGui::TextDisabled("by Omar Cornut");
+			ImGui::TextDisabled("  Immediate-mode GUI library used for the entire UI.");
+			ImGui::TextDisabled("  https://github.com/ocornut/imgui  —  MIT License");
+			ImGui::Spacing();
+
+			// ── Privacy tweaks inspiration ───────────────────────────────────
+			ImGui::Separator();
+			ImGui::Spacing();
+			ImGui::TextColored(ImVec4(0.35f,0.85f,1.0f,1.0f),"Privacy Tweaks");
+			ImGui::Spacing();
+
+			ImGui::TextColored(ImVec4(1.0f,0.85f,0.3f,1.0f),"hellzerg / Optimizer");
+			ImGui::TextDisabled("  Registry-based privacy and telemetry tweaks ported from");
+			ImGui::TextDisabled("  the Optimizer project's EnhancePrivacy / CompromisePrivacy");
+			ImGui::TextDisabled("  routines (C# -> C++).");
+			ImGui::TextDisabled("  https://github.com/hellzerg/optimizer  —  GPL-3.0 License");
+			ImGui::Spacing();
+
+			// ── License ──────────────────────────────────────────────────────
+			ImGui::Separator();
+			ImGui::Spacing();
+			ImGui::TextColored(ImVec4(0.35f,0.85f,1.0f,1.0f),"License");
+			ImGui::TextDisabled("  FRS is released under the MIT License.");
+			ImGui::TextDisabled("  See LICENSE in the project root for the full text.");
 
 			ImGui::EndTabItem();
 		}

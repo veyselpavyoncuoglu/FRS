@@ -70,7 +70,7 @@ fi
 echo "[*] Building FRS..."
 g++ -O2 -std=c++17 \
 	-I imgui -I src $GLFW_CFLAGS \
-	src/main_linux.cpp src/app.cpp src/ram_linux.cpp src/platform_linux.cpp \
+	src/main_linux.cpp src/app.cpp src/ram_linux.cpp src/platform_linux.cpp src/privacy.cpp src/privacy_linux.cpp \
 	imgui/imgui.cpp imgui/imgui_draw.cpp imgui/imgui_tables.cpp imgui/imgui_widgets.cpp \
 	imgui/imgui_impl_glfw.cpp imgui/imgui_impl_opengl3.cpp \
 	$GLFW_FLAGS -lGL -lpthread -ldl \

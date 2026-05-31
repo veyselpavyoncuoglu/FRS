@@ -17,6 +17,7 @@ Runs multiple cleaning methods in the background with real-time progress feedbac
 - **Full Clean** — runs all four methods in sequence
 - **Auto-Refresh** — refreshes RAM stats automatically at a configurable interval
 - **Auto-Clean** — triggers a clean automatically when RAM usage exceeds a configurable threshold; with a low threshold and only "Empty Working Sets" ticked it makes a great passive background cleaner that stays out of the way until memory pressure actually builds up
+- **Privacy tab** — apply and revert ~60 registry-based privacy/telemetry tweaks across 10 categories (Telemetry, Activity History, Location, Advertising ID, Tailored Experiences, Feedback, Ink & Typing, Clipboard History, App Compat, Cortana). Each tweak shows live status (ON / PARTIAL / OFF) and can be toggled individually or all at once. Ported from [hellzerg/optimizer](https://github.com/hellzerg/optimizer). Requires Administrator.
 - **Persistent settings** — all settings are saved on change and restored on next launch (`%APPDATA%\FRS\settings.ini` on Windows, `$XDG_CONFIG_HOME/FRS/settings.ini` — usually `~/.config/FRS/settings.ini` — on Linux)
 - **Run at startup** — optional auto-start at login, toggled from the Settings tab (default off). Windows uses a Task Scheduler task that launches FRS elevated with no UAC prompt; Linux drops a `.desktop` entry in `~/.config/autostart/`
 - Threaded cleaning — UI stays responsive during long operations
@@ -107,6 +108,10 @@ FRS/
 │   ├── ram.h                  # RamStats struct + cleaning function declarations (platform-neutral)
 │   ├── ram.cpp                # Windows RAM cleaning implementations
 │   ├── ram_linux.cpp          # Linux RAM cleaning implementations
+│   ├── privacy.h              # Privacy tab interface + platform backend declarations
+│   ├── privacy.cpp            # Platform-neutral privacy tweak logic and ImGui tab rendering
+│   ├── privacy_win.cpp        # Windows registry backend (RegCreateKeyExW, RegSetValueExW, …)
+│   ├── privacy_linux.cpp      # Linux stub (privacy tweaks are Windows-only)
 │   ├── main.cpp               # Windows backend: Win32 window + DirectX 11 render loop
 │   └── main_linux.cpp         # Linux backend: GLFW window + OpenGL 3 render loop
 ├── imgui/                     # ImGui source + backends (populated by setup.bat / setup.sh)
@@ -130,6 +135,16 @@ FRS/
 - **Default Auto-Clean config**: threshold 20%, Empty Working Sets only — ready to enable as a passive background cleaner out of the box
 - **Startup**: Windows uses a Task Scheduler task via `schtasks /create /rl highest /sc onlogon` (no UAC prompt on subsequent boots); Linux uses an XDG autostart `.desktop` file
 - **Privileges**: Windows enables `SE_DEBUG_NAME` at startup for `EmptyWorkingSet` access to system processes; Linux checks `geteuid() == 0`
+
+## Credits
+
+| What | Who / Where |
+| --- | --- |
+| **FRS** — original author and developer | Nems1337 |
+| **Dear ImGui** — the entire UI | [Omar Cornut](https://github.com/ocornut) — [ocornut/imgui](https://github.com/ocornut/imgui) (MIT) |
+| **Privacy & telemetry tweaks** — registry op patterns ported to C++ | [hellzerg/optimizer](https://github.com/hellzerg/optimizer) `EnhancePrivacy` / `CompromisePrivacy` (GPL-3.0) |
+
+The privacy tweak list was ported from hellzerg/optimizer's `OptimizeHelper.cs`. Only pure registry read/write/delete operations were carried over; service-Start edits, scheduled-task scripts, and any other side-effecting shell commands were intentionally excluded so every tweak reverts cleanly to Windows defaults.
 
 ## License
 
