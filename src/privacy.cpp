@@ -10,6 +10,7 @@
 // out so that every tweak reverts to the Windows default by simply deleting the
 // value (which is exactly what CompromisePrivacy does).
 #include "privacy.h"
+#include "ui.h"
 #include "ram.h"      // isElevated()
 #include "imgui.h"
 #include <cstdio>
@@ -243,20 +244,47 @@ namespace {
 
 namespace privacy {
 
+	int count() { return NTWEAKS; }
+	const char* name(int i) { return kTweaks[i].name; }
+	const char* desc(int i) { return kTweaks[i].desc; }
+	int keys(int i) { return kTweaks[i].n; }
+
+	int status(int i) {
+		g_status[i] = tweakStatus(kTweaks[i]);
+		return g_status[i];
+	}
+
+	int apply(int i) {
+		int ok = applyTweak(kTweaks[i]);
+		g_status[i] = tweakStatus(kTweaks[i]);
+		char b[128];
+		snprintf(b,sizeof(b),"[mcp] %s: applied %d/%d.",kTweaks[i].name,ok,kTweaks[i].n);
+		addResult(b);
+		return ok;
+	}
+
+	int revert(int i) {
+		int ok = revertTweak(kTweaks[i]);
+		g_status[i] = tweakStatus(kTweaks[i]);
+		char b[128];
+		snprintf(b,sizeof(b),"[mcp] %s: reverted %d/%d.",kTweaks[i].name,ok,kTweaks[i].n);
+		addResult(b);
+		return ok;
+	}
+
 	void drawTab() {
-		ImGui::Spacing();
+		const ImVec4 green = ui::c.good;
+		const ImVec4 yellow = ui::c.warn;
+		const ImVec4 red = ui::c.bad;
+		const ImVec4 gray = ui::c.dim;
 
-		const ImVec4 cyan(0.35f, 0.85f, 1.0f, 1.0f);
-		const ImVec4 green(0.3f, 1.0f, 0.5f, 1.0f);
-		const ImVec4 yellow(1.0f, 0.75f, 0.2f, 1.0f);
-		const ImVec4 red(1.0f, 0.35f, 0.35f, 1.0f);
-		const ImVec4 gray(0.7f, 0.7f, 0.7f, 1.0f);
-
-		ImGui::TextColored(cyan, "Windows Privacy & Telemetry");
+		ui::beginCard("##privhead",nullptr);
+		ui::heading("Windows Privacy & Telemetry");
 
 		if (!backend::supported()) {
 			ImGui::Spacing();
 			ImGui::TextWrapped("These are Windows registry tweaks and are not available on this platform.");
+			ui::endCard();
 			return;
 		}
 
@@ -274,9 +302,7 @@ namespace privacy {
 		if (ImGui::Button("Refresh Status")) refreshAll();
 		ImGui::SameLine();
 
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.55f, 0.2f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.75f, 0.28f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.45f, 0.15f, 1.0f));
+		ui::pushBtnColor(ui::c.good);
 		if (ImGui::Button("Apply All")) {
 			int ok = 0, total = 0;
 			for (int i = 0; i < NTWEAKS; ++i) { ok += applyTweak(kTweaks[i]); total += kTweaks[i].n; }
@@ -285,7 +311,7 @@ namespace privacy {
 			snprintf(b, sizeof(b), "Apply All: %d/%d values written.", ok, total);
 			addResult(b);
 		}
-		ImGui::PopStyleColor(3);
+		ui::popBtnColor();
 		ImGui::SameLine();
 		if (ImGui::Button("Revert All")) {
 			int ok = 0, total = 0;
@@ -296,10 +322,10 @@ namespace privacy {
 			addResult(b);
 		}
 
+		ui::endCard();
 		ImGui::Spacing();
-		ImGui::Separator();
 
-		ImGui::BeginChild("##privlist", ImVec2(0, -150.0f), true);
+		ui::beginCard("##privlist",nullptr,ImVec2(0.0f,-110.0f));
 		for (int i = 0; i < NTWEAKS; ++i) {
 			const Tweak& t = kTweaks[i];
 			Status s = g_status[i];
@@ -308,10 +334,10 @@ namespace privacy {
 
 			ImGui::PushID(i);
 			ImGui::TextColored(col, "[%s]", badge);
-			ImGui::SameLine(90.0f);
+			ImGui::SameLine(ui::px(90.0f));
 			ImGui::TextUnformatted(t.name);
 
-			float btnsW = 130.0f;
+			float btnsW = ImGui::CalcTextSize("Apply").x + ImGui::CalcTextSize("Revert").x + ImGui::GetStyle().FramePadding.x * 4.0f + ImGui::GetStyle().ItemSpacing.x;
 			ImGui::SameLine(ImGui::GetContentRegionMax().x - btnsW);
 			if (ImGui::SmallButton("Apply")) {
 				int ok = applyTweak(t);
@@ -331,20 +357,25 @@ namespace privacy {
 
 			ImGui::PushStyleColor(ImGuiCol_Text, gray);
 			ImGui::PushTextWrapPos(0.0f);
-			ImGui::Text("        %s  (%d keys)", t.desc, t.n);
+			ImGui::SetCursorPosX(ui::px(90.0f));
+			ImGui::Text("%s  (%d keys)",t.desc,t.n);
 			ImGui::PopTextWrapPos();
 			ImGui::PopStyleColor();
 
 			ImGui::Spacing();
 			ImGui::PopID();
 		}
-		ImGui::EndChild();
+		ui::endCard();
+		ImGui::Spacing();
 
+		ui::beginCard("##privrescard",nullptr,ImVec2(0.0f,-1.0f));
 		ImGui::Text("Results :");
 		ImGui::SameLine();
 		if (ImGui::SmallButton("Clear##privres")) g_results.clear();
 
-		ImGui::BeginChild("##privresults", ImVec2(0, 0), true);
+		ImGui::BeginChild("##privresults",ImVec2(0,0));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,ImVec2(ImGui::GetStyle().ItemSpacing.x,ui::px(2.0f)));
+		if (g_results.empty()) ui::empty("No results yet");
 		for (auto& e : g_results) {
 			const char* c = e.c_str();
 			ImVec4 lc = gray;
@@ -352,7 +383,9 @@ namespace privacy {
 			else if (strstr(c, "Revert") || strstr(c, "reverted")) lc = yellow;
 			ImGui::TextColored(lc, "%s", c);
 		}
+		ImGui::PopStyleVar();
 		ImGui::EndChild();
+		ui::endCard();
 	}
 
 }

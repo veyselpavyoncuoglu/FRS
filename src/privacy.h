@@ -18,6 +18,15 @@ namespace privacy {
 	// it just explains that the feature is Windows-only.
 	void drawTab();
 
+	// Same actions as the tab buttons, for the MCP tools. UI thread only.
+	int count();
+	const char* name(int i);
+	const char* desc(int i);
+	int keys(int i);
+	int status(int i);   // 0 off,1 partial,2 on (re-reads the registry)
+	int apply(int i);    // values written
+	int revert(int i);   // values cleared
+
 	// Registry back-end. Platform-specific: implemented in privacy_win.cpp on
 	// Windows and stubbed in privacy_linux.cpp. The data model (privacy.cpp)
 	// talks only to these; it never includes any OS header. All subkeys are

@@ -1,3 +1,4 @@
+#ifndef _WIN32
 // Linux stub for the privacy back-end. There is no Windows registry here, so
 // every operation reports "unsupported". privacy.cpp checks supported() and
 // shows a Windows-only notice in the tab instead of any controls.
@@ -14,3 +15,4 @@ namespace privacy { namespace backend {
 	bool getString(bool, const char*, const char*, std::string*) { return false; }
 
 }}
+#endif // !_WIN32

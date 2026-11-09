@@ -19,6 +19,68 @@ RamStats getRamStats() {
 	return r;
 }
 
+std::vector<std::pair<std::string,uint64_t>> getMemInfo() {
+	std::vector<std::pair<std::string,uint64_t>> v;
+	SYSTEM_INFO si;
+	GetSystemInfo(&si);
+	uint64_t pg = si.dwPageSize;
+	auto mb = [&](uint64_t pages) { return pages * pg / (1024 * 1024); };
+
+	// SystemMemoryListInformation (80)
+	struct {
+		ULONG_PTR zero,free,modified,modifiedNoWrite,bad;
+		ULONG_PTR standby[8];
+		ULONG_PTR repurposed[8];
+		ULONG_PTR modifiedPageFile;
+	} ml = {};
+	typedef LONG(WINAPI* NtQSI_t)(UINT,PVOID,ULONG,PULONG);
+	auto fn = (NtQSI_t)GetProcAddress(GetModuleHandleW(L"ntdll.dll"),"NtQuerySystemInformation");
+	if (fn && fn(80,&ml,sizeof(ml),nullptr) == 0) {
+		uint64_t sb = 0;
+		for (auto n : ml.standby) sb += n;
+		v.push_back({"standby_mb",mb(sb)});
+		v.push_back({"modified_mb",mb(ml.modified + ml.modifiedNoWrite)});
+		v.push_back({"free_list_mb",mb(ml.free + ml.zero)});
+	}
+
+	PERFORMANCE_INFORMATION pi = {};
+	pi.cb = sizeof(pi);
+	if (GetPerformanceInfo(&pi,sizeof(pi))) {
+		v.push_back({"commit_mb",mb(pi.CommitTotal)});
+		v.push_back({"commit_limit_mb",mb(pi.CommitLimit)});
+		v.push_back({"system_cache_mb",mb(pi.SystemCache)});
+		v.push_back({"kernel_paged_mb",mb(pi.KernelPaged)});
+		v.push_back({"kernel_nonpaged_mb",mb(pi.KernelNonpaged)});
+		v.push_back({"processes",pi.ProcessCount});
+		v.push_back({"threads",pi.ThreadCount});
+		v.push_back({"handles",pi.HandleCount});
+	}
+	return v;
+}
+
+std::vector<ProcMem> getProcs() {
+	std::vector<ProcMem> v;
+	HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0);
+	if (snap == INVALID_HANDLE_VALUE) return v;
+	PROCESSENTRY32W pe = {};
+	pe.dwSize = sizeof(pe);
+	if (Process32FirstW(snap,&pe)) {
+		do {
+			HANDLE ph = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pe.th32ProcessID);
+			if (!ph) continue;
+			PROCESS_MEMORY_COUNTERS_EX pmc = {};
+			if (GetProcessMemoryInfo(ph,(PROCESS_MEMORY_COUNTERS*)&pmc,sizeof(pmc))) {
+				char nm[MAX_PATH * 3];
+				WideCharToMultiByte(CP_UTF8,0,pe.szExeFile,-1,nm,sizeof(nm),nullptr,nullptr);
+				v.push_back({pe.th32ProcessID,nm,pmc.WorkingSetSize,pmc.PrivateUsage});
+			}
+			CloseHandle(ph);
+		} while (Process32NextW(snap,&pe));
+	}
+	CloseHandle(snap);
+	return v;
+}
+
 std::string flushStandby(int sz) {
 	unsigned int nThreads = std::thread::hardware_concurrency();
 	if (nThreads < 1) nThreads = 1;
@@ -26,6 +88,7 @@ std::string flushStandby(int sz) {
 	size_t chunk = total / nThreads;
 	if (chunk == 0) chunk = total;
 	std::vector<std::thread> threads;
+	struct Joiner { std::vector<std::thread>& v; ~Joiner() { for (auto& t : v) if (t.joinable()) t.join(); } } joiner{threads};
 	for (unsigned int i = 0; i < nThreads; i++) {
 		size_t bytes = (i == nThreads - 1) ? (total - chunk * i) : chunk;
 		threads.emplace_back([bytes]() {
@@ -56,6 +119,7 @@ std::string emptyWorkSets() {
 	if (nThreads > (unsigned int)pids.size()) nThreads = (unsigned int)pids.size();
 	std::vector<int> counts(nThreads,0);
 	std::vector<std::thread> threads;
+	struct Joiner { std::vector<std::thread>& v; ~Joiner() { for (auto& t : v) if (t.joinable()) t.join(); } } joiner{threads};
 	for (unsigned int i = 0; i < nThreads; i++) {
 		threads.emplace_back([&pids,&counts,i,nThreads]() {
 			for (size_t j = i; j < pids.size(); j += nThreads) {

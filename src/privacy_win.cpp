@@ -1,3 +1,4 @@
+#ifdef _WIN32
 // Windows registry back-end for the privacy/telemetry tweaks (see privacy.h).
 // Thin wrappers over the Reg* API. All subkeys/names/values handled here are
 // ASCII, but the process is built UNICODE, so we widen to UTF-16 before each
@@ -123,3 +124,4 @@ namespace privacy { namespace backend {
 	}
 
 }}
+#endif // _WIN32

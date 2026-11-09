@@ -38,6 +38,14 @@ else
 	echo "[!] Unknown distro — install g++, git and GLFW3 dev headers manually."
 fi
 
+# pkexec shows the graphical root prompt FRS uses to elevate itself (optional,
+# without it FRS runs unprivileged unless started with sudo).
+if ! need pkexec; then
+	if need apt-get; then install_pkgs pkexec || install_pkgs policykit-1 || true
+	elif need dnf || need pacman || need zypper; then install_pkgs polkit || true
+	fi
+fi
+
 if ! need g++; then
 	echo "[!] g++ still not found after install attempt. Aborting."
 	exit 1

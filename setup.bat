@@ -48,10 +48,10 @@ echo [*] NOTE : Reopen any terminals for g++ to be in PATH globally.
 :: Step 2 : Clone and copy ImGui
 :: ================================================================
 :imgui
-echo [*] Cloning ImGui (shallow)...
+echo [*] Cloning ImGui v1.92.8 (shallow)...
 if not exist imgui mkdir imgui
 
-git clone --depth=1 https://github.com/ocornut/imgui.git _imgui_tmp
+git clone --depth=1 --branch v1.92.8 https://github.com/ocornut/imgui.git _imgui_tmp
 if errorlevel 1 (
 	echo [!] git clone failed. Make sure git is in PATH.
 	pause
